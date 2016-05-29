@@ -16,38 +16,27 @@
  *
  * https://luispc.com/
  */
+
+/**
+ * 現在の値またはワースト値が閾値を下回ることがあれば、データのバックアップやハードディスクの交換など必要な処置
+ * 「現在の値」(Value)、「閾値」(Threshold)、「ワースト値」(Worst)
+ */
 error_reporting(0);
 
-$dev = $argv[1];
-$smart = exec("smartctl -a /dev/${dev}", $array_result);
+/* Mode */
+$mode = $argv[0];
+/* Device */
+$dev = $argv[2];
+/* item */
+$item = $argv[3];
 
-foreach ($array_result as $row) {
-    if (strpos($row, "Reallocated_Event_Count") !== false) {
-        $rec = $row;
-    } elseif (strpos($row, "Offline_Uncorrectable") !== false) {
-        $ou = $row;
-    } elseif (strpos($row, "Current_Pending_Sector") !== false) {
-        $cps = $row;
-    }
-    if (isset($rec) || isset($ou) && isset($cps)) {
-        break;
-    }
-}
+if ($mode == 0) {
+    $exec = exec("smartctl -A /dev/{$dev} | grep $item | awk '{print $10}'");
+    echo $exec;
+    exit;
 
-$rec = explode("|", preg_replace("/\\s/", "|", $rec));
-$rec_value = (int)$rec[5];
-$rec_thresh = (int)$rec[11];
+} elseif ($mode == 1) {
+    /* Reallocated Sectors Count */
+    $RSC = exec("smartctl -A /dev/{$dev} | grep 'Reallocated_Sector_Ct' | awk '{print $10}'");
 
-$ou = explode("|", preg_replace("/\\s/", "|", $ou));
-$ou_value = (int)$ou[7];
-$ou_thresh = (int)$ou[13];
-
-$cps = explode("|", preg_replace("/\\s/", "|", $cps));
-$cps_value = (int)$cps[6];
-$cps_thresh = (int)$cps[12];
-
-if ($rec_thresh >= $rec_value || $ou_thresh >= $ou_value || $cps_thresh >= $cps_value) {
-    echo -1;
-} else {
-    echo 0;
 }
